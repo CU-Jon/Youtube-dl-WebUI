@@ -269,7 +269,7 @@ class Downloader
 		
 	}
 
-	private function do_download($audio_only)
+/* 	private function do_download($audio_only)
 	{
 		$cmd = $this->config["bin"];
 		$cmd .= " --ignore-error -o ".$this->download_path."/";
@@ -302,6 +302,54 @@ class Downloader
 		$cmd .= " & echo $!";
 
 		shell_exec($cmd);
+	} */
+
+	// Modify the command to use POT
+	private function do_download($audio_only)
+	{
+		$cmd = $this->config["bin"];
+		$cmd .= " --ignore-error -o ".$this->download_path."/";
+		$cmd .= escapeshellarg($this->outfilename);
+	
+		if ($this->vformat) 
+		{
+			$cmd .= " --format ";
+			$cmd .= escapeshellarg($this->vformat);
+		}
+		if($audio_only)
+		{
+			$cmd .= " -x ";
+		}
+		$cmd .= " --restrict-filenames"; // --restrict-filenames is for specials chars
+	
+		 // Prepare generate_once.js path in the same directory as bin
+        $binPath = $this->config["bin"];
+        $binDir = dirname($binPath);
+        $generateOnceJSPath = $binDir . '/bgutil-ytdlp-pot-provider/server/build/generate_once.js';
+	
+		foreach($this->urls as $url)
+		{
+			$cmdForUrl = $cmd;
+			if (strpos($url, 'youtube.com') !== false || strpos($url, 'youtu.be') !== false) {
+				$cmdForUrl .= ' --extractor-args ';
+				$cmdForUrl .= '"youtube:getpot_bgutil_script=' . $generateOnceJSPath . '"';
+			}
+			$cmdForUrl .= " ".escapeshellarg($url);
+	
+			if($this->config["log"])
+			{
+				$cmdForUrl = "{ echo Command: ".escapeshellarg($cmdForUrl)."; ".$cmdForUrl." ; }";
+				$cmdForUrl .= " > ".$this->log_path."/$(date  +\"%Y-%m-%d_%H-%M-%S-%N\").txt";
+			}
+			else
+			{
+				$cmdForUrl .= " > /dev/null ";
+			}
+	
+			$cmdForUrl .= " & echo $!";
+	
+			shell_exec($cmdForUrl);
+		}
 	}
 
 	private function do_info()
